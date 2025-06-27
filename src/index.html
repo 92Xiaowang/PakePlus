@@ -1,22 +1,791 @@
 <!DOCTYPE html>
-<html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <link rel="stylesheet" href="styles.css" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>PakePlus App</title>
-        <script type="module" src="/main.js" defer></script>
-    </head>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FinalShell 离线激活码生成器</title>
+  <link rel="stylesheet" href="./css/fonts.css">
+  <script src="./crypto-js.min.js"></script>
+  <style>
+    :root {
+      --primary: #5b7bf4;
+      --primary-dark: #4a6cf7;
+      --secondary: #94a3b8;
+      --success: #10b981;
+      --danger: #ef4444;
+      --dark: #0f172a;
+      --darker: #0a0f1d;
+      --light: #1e293b;
+      --lighter: #2d3b54;
+      --card-bg: #1e293b;
+      --text: #e2e8f0;
+      --text-light: #f1f5f9;
+      --border: #334155;
+      --shadow: rgba(0, 0, 0, 0.4);
+      --gradient-start: #6366f1;
+      --gradient-end: #8b5cf6;
+    }
 
-    <body>
-        <main class="container">
-            <h1>Welcome to PakePlus</h1>
+    .light-theme {
+      --primary: #4a6cf7;
+      --primary-dark: #3a56d7;
+      --secondary: #6c757d;
+      --dark: #f8fafc;
+      --darker: #e2e8f0;
+      --light: #ffffff;
+      --lighter: #f8fafc;
+      --card-bg: #ffffff;
+      --text: #334155;
+      --text-light: #1e293b;
+      --border: #e2e8f0;
+      --shadow: rgba(0, 0, 0, 0.1);
+      --gradient-start: #4f46e5;
+      --gradient-end: #7c3aed;
+    }
 
-            <form class="row" id="greet-form">
-                <input id="greet-input" placeholder="Enter a name..." />
-                <button type="submit">Greet</button>
-            </form>
-            <p id="greet-msg"></p>
-        </main>
-    </body>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      transition: background-color 0.3s, color 0.3s, transform 0.2s;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: linear-gradient(135deg, var(--darker) 0%, var(--dark) 100%);
+      color: var(--text);
+      padding: 10px;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .light-theme body {
+      background: linear-gradient(135deg, #e2e8f0 0%, #f8fafc 100%);
+    }
+
+    .container {
+      max-width: 800px;
+      width: 100%;
+      height: 100%;
+      margin: 0 auto;
+      padding: 0 10px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 15px;
+      padding-top: 15px;
+      flex-shrink: 0;
+    }
+
+    .logo {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 15px;
+    }
+
+    .logo-icon {
+      font-size: 2rem;
+      color: var(--primary);
+      background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .logo h1 {
+      font-size: 1.8rem;
+      font-weight: 700;
+      background: linear-gradient(90deg, var(--gradient-start), var(--gradient-end));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .subtitle {
+      color: var(--secondary);
+      font-size: 0.95rem;
+      max-width: 600px;
+      margin: 0 auto 20px;
+      text-align: center;
+    }
+
+    .content-wrapper {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .scrollable-area {
+      overflow-y: auto;
+      padding-bottom: 10px;
+      flex: 1;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border-radius: 16px;
+      box-shadow: 0 8px 20px var(--shadow);
+      padding: 25px;
+      margin-bottom: 20px;
+      border: 1px solid var(--border);
+      animation: fadeIn 0.4s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .card-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--primary);
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .card-title i {
+      font-size: 1.1rem;
+    }
+
+    .input-group {
+      margin-bottom: 20px;
+      position: relative;
+    }
+
+    .input-wrapper {
+      position: relative;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px 12px 12px 40px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-size: 1rem;
+      background: var(--lighter);
+      color: var(--text-light);
+      transition: border-color 0.3s, box-shadow 0.3s;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(91, 123, 244, 0.3);
+    }
+
+    .input-icon {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--primary);
+      font-size: 1.1rem;
+    }
+
+    /* 版本选择区域样式 */
+    .version-selector {
+      margin-bottom: 20px;
+      padding: 15px;
+      background: var(--lighter);
+      border-radius: 10px;
+      border: 1px solid var(--border);
+    }
+
+    .version-title {
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 1rem;
+    }
+
+    .version-title i {
+      font-size: 0.9rem;
+    }
+
+    .version-options {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 12px;
+    }
+
+    .version-option {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .version-option input {
+      width: auto;
+    }
+
+    .version-option label {
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+
+    .btn {
+      background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+      color: white;
+      border: none;
+      padding: 12px;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      box-shadow: 0 4px 10px rgba(91, 123, 244, 0.3);
+      transition: all 0.3s;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 14px rgba(91, 123, 244, 0.4);
+    }
+
+    .btn:active {
+      transform: translateY(1px);
+    }
+
+    .btn i {
+      font-size: 1rem;
+    }
+
+    .result-container {
+      margin-top: 15px;
+    }
+
+    .result-title {
+      font-size: 1.15rem;
+      font-weight: 600;
+      margin-bottom: 20px;
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .version-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 15px;
+    }
+
+    .activation-card {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 10px;
+      padding: 15px;
+      margin-bottom: 15px;
+      display: flex;
+      flex-direction: column;
+      border: 1px solid var(--border);
+      animation: slideIn 0.3s ease-out;
+    }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateX(-10px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    .activation-card:last-child {
+      margin-bottom: 0;
+    }
+
+    .activation-header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 12px;
+      justify-content: space-between;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 0.3rem 0.8rem;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      margin-right: 6px;
+    }
+
+    .badge-pro {
+      background: linear-gradient(90deg, #8b5cf6, #ec4899);
+      color: white;
+    }
+
+    .badge-adv {
+      background: linear-gradient(90deg, #3b82f6, #10b981);
+      color: white;
+    }
+
+    .activation-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .activation-code {
+      font-family: 'Fira Code', 'Courier New', monospace;
+      color: var(--text-light);
+      font-weight: 600;
+      font-size: 0.9rem;
+      word-break: break-all;
+      flex: 1;
+      min-width: 200px;
+      background: rgba(0, 0, 0, 0.1);
+      padding: 10px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+    }
+
+    .copy-btn {
+      background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+      border: none;
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      font-weight: 600;
+      transition: all 0.3s;
+      flex-shrink: 0;
+    }
+
+    .copy-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(91, 123, 244, 0.3);
+    }
+
+    .copy-btn:active {
+      transform: translateY(1px);
+    }
+
+    .copy-btn i {
+      font-size: 0.8rem;
+    }
+
+    .theme-toggle {
+      position: fixed;
+      top: 15px;
+      right: 15px;
+      background: var(--lighter);
+      border: 1px solid var(--border);
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 4px 10px var(--shadow);
+      z-index: 100;
+      transition: all 0.3s;
+    }
+
+    .theme-toggle:hover {
+      transform: rotate(15deg);
+    }
+
+    .theme-toggle i {
+      font-size: 1.1rem;
+    }
+
+    .footer {
+      text-align: center;
+      margin-top: auto;
+      color: var(--secondary);
+      font-size: 0.8rem;
+      padding: 15px 0;
+      flex-shrink: 0;
+    }
+
+    .copied-message {
+      position: fixed;
+      top: 15px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--success);
+      color: white;
+      padding: 0.8rem 1.5rem;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      z-index: 1000;
+      opacity: 0;
+      transition: opacity 0.3s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.9rem;
+    }
+
+    .copied-show {
+      opacity: 1;
+    }
+
+    .instructions {
+      background: var(--lighter);
+      border-radius: 10px;
+      padding: 18px;
+      margin-bottom: 20px;
+      border: 1px solid var(--border);
+    }
+
+    .instructions-title {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .instructions-title i {
+      font-size: 0.95rem;
+    }
+
+    .instructions p {
+      margin-bottom: 8px;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    .instructions p:last-child {
+      margin-bottom: 0;
+    }
+
+    .instructions p i {
+      color: var(--primary);
+      font-size: 0.8rem;
+      margin-top: 4px;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--secondary);
+    }
+
+    .empty-state i {
+      font-size: 3rem;
+      margin-bottom: 15px;
+      color: var(--primary);
+      opacity: 0.5;
+    }
+
+    @media (max-width: 768px) {
+      .logo h1 {
+        font-size: 1.5rem;
+      }
+      
+      .card-title {
+        font-size: 1.15rem;
+      }
+      
+      .version-options {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 480px) {
+      body {
+        padding: 8px;
+        height: auto;
+        min-height: 100vh;
+      }
+      
+      .logo h1 {
+        font-size: 1.3rem;
+      }
+      
+      .card {
+        padding: 20px;
+      }
+      
+      .activation-row {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      
+      .copy-btn {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body class="dark-theme">
+  <div class="theme-toggle" id="themeToggle">
+    <i class="fas fa-sun"></i>
+  </div>
+
+  <div class="container">
+    <header>
+      <div class="logo">
+        <i class="fas fa-key logo-icon"></i>
+        <h1>FinalShell 激活码生成器</h1>
+      </div>
+      <p class="subtitle">离线激活工具 - 支持多个FinalShell版本</p>
+    </header>
+
+    <div class="content-wrapper">
+      <div class="scrollable-area">
+        <div class="card">
+          <h2 class="card-title"><i class="fas fa-laptop-code"></i> 激活信息</h2>
+          <div class="input-group">
+            <div class="input-wrapper">
+              <i class="fas fa-fingerprint input-icon"></i>
+              <input id="machineCode" type="text" placeholder="请输入 FinalShell 机器码..." autofocus />
+            </div>
+          </div>
+          
+          <!-- 版本选择区域 -->
+          <div class="version-selector">
+            <div class="version-title">
+              <i class="fas fa-code-branch"></i> 选择版本
+            </div>
+            <div class="version-options">
+              <div class="version-option">
+                <input type="radio" id="v1" name="version" value="old" checked>
+                <label for="v1">旧版本 (&lt;3.9.6)</label>
+              </div>
+              <div class="version-option">
+                <input type="radio" id="v2" name="version" value="new">
+                <label for="v2">3.9.6+ 版本</label>
+              </div>
+              <div class="version-option">
+                <input type="radio" id="v3" name="version" value="4.5">
+                <label for="v3">4.5 版本</label>
+              </div>
+              <div class="version-option">
+                <input type="radio" id="v4" name="version" value="4.6">
+                <label for="v4">4.6 版本</label>
+              </div>
+            </div>
+          </div>
+          
+          <button class="btn" onclick="generate()">
+            <i class="fas fa-bolt"></i> 生成激活码
+          </button>
+        </div>
+
+        <div class="card">
+          <h2 class="card-title"><i class="fas fa-key"></i> 激活码结果</h2>
+          <div class="result-container" id="output">
+            <div class="instructions">
+              <div class="instructions-title"><i class="fas fa-info-circle"></i> 操作说明</div>
+              <p><i class="fas fa-caret-right"></i>在FinalShell中获取机器码</p>
+              <p><i class="fas fa-caret-right"></i>粘贴到上方输入框</p>
+              <p><i class="fas fa-caret-right"></i>选择需要的版本</p>
+              <p><i class="fas fa-caret-right"></i>点击生成按钮</p>
+              <p><i class="fas fa-caret-right"></i>复制下方对应的激活码</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <footer class="footer">
+      <p>© 2025 FinalShell激活工具 | 仅供学习研究使用</p>
+    </footer>
+  </div>
+
+  <div class="copied-message" id="copiedMessage">
+    <i class="fas fa-check-circle"></i> 激活码已复制到剪贴板！
+  </div>
+
+  <script>
+    function md5(str) {
+      return CryptoJS.MD5(str).toString();
+    }
+
+    function keccak384(str) {
+      return CryptoJS.SHA3(str, { outputLength: 384 }).toString();
+    }
+
+    function generate() {
+      const code = document.getElementById('machineCode').value.trim();
+      const out = document.getElementById('output');
+      
+      if (!code) {
+        out.innerHTML = '<div class="instructions" style="color:#ef4444">请输入有效的机器码</div>';
+        return;
+      }
+      
+      // 获取选中的版本
+      const version = document.querySelector('input[name="version"]:checked').value;
+      
+      let res = '';
+      
+      // 根据选择的版本生成激活码
+      switch(version) {
+        case 'old':
+          res = '<div class="version-grid">';
+          res += '<div class="version-card">';
+          res += '<div class="version-header"><i class="fas fa-history"></i><span class="version-name">FinalShell &lt; 3.9.6</span></div>';
+          
+          const adv1 = md5('61305' + code + '8552').slice(8, 24);
+          res += '<div class="activation-card">';
+          res += '<div class="activation-header"><span class="badge badge-adv">高级版</span></div>';
+          res += '<div class="activation-row">';
+          res += '<div class="activation-code">' + adv1 + '</div>';
+          res += '<button class="copy-btn" onclick="copyCode(\'' + adv1 + '\')"><i class="fas fa-copy"></i> 复制</button>';
+          res += '</div></div>';
+          
+          const pro1 = md5('2356' + code + '13593').slice(8, 24);
+          res += '<div class="activation-card">';
+          res += '<div class="activation-header"><span class="badge badge-pro">专业版</span></div>';
+          res += '<div class="activation-row">';
+          res += '<div class="activation-code">' + pro1 + '</div>';
+          res += '<button class="copy-btn" onclick="copyCode(\'' + pro1 + '\')"><i class="fas fa-copy"></i> 复制</button>';
+          res += '</div></div>';
+          
+          res += '</div>';
+          res += '</div>';
+          break;
+          
+        case 'new':
+          res = '<div class="version-grid">';
+          res += '<div class="version-card">';
+          res += '<div class="version-header"><i class="fas fa-code-branch"></i><span class="version-name">FinalShell ≥ 3.9.6</span></div>';
+          
+          const adv2 = keccak384(code + 'hSf(78cvVlS5E').slice(12, 28);
+          res += '<div class="activation-card">';
+          res += '<div class="activation-header"><span class="badge badge-adv">高级版</span></div>';
+          res += '<div class="activation-row">';
+          res += '<div class="activation-code">' + adv2 + '</div>';
+          res += '<button class="copy-btn" onclick="copyCode(\'' + adv2 + '\')"><i class="fas fa-copy"></i> 复制</button>';
+          res += '</div></div>';
+          
+          const pro2 = keccak384(code + 'FF3Go(*Xvbb5s2').slice(12, 28);
+          res += '<div class="activation-card">';
+          res += '<div class="activation-header"><span class="badge badge-pro">专业版</span></div>';
+          res += '<div class="activation-row">';
+          res += '<div class="activation-code">' + pro2 + '</div>';
+          res += '<button class="copy-btn" onclick="copyCode(\'' + pro2 + '\')"><i class="fas fa-copy"></i> 复制</button>';
+          res += '</div></div>';
+          
+          res += '</div>';
+          res += '</div>';
+          break;
+          
+        case '4.5':
+          res = '<div class="version-grid">';
+          res += '<div class="version-card">';
+          res += '<div class="version-header"><i class="fas fa-tag"></i><span class="version-name">FinalShell 4.5</span></div>';
+          
+          const adv3 = keccak384(code + 'wcegS3gzA$').slice(12, 28);
+          res += '<div class="activation-card">';
+          res += '<div class="activation-header"><span class="badge badge-adv">高级版</span></div>';
+          res += '<div class="activation-row">';
+          res += '<div class="activation-code">' + adv3 + '</div>';
+          res += '<button class="copy-btn" onclick="copyCode(\'' + adv3 + '\')"><i class="fas fa-copy"></i> 复制</button>';
+          res += '</div></div>';
+          
+          const pro3 = keccak384(code + 'b(xxkHn%z);x').slice(12, 28);
+          res += '<div class="activation-card">';
+          res += '<div class="activation-header"><span class="badge badge-pro">专业版</span></div>';
+          res += '<div class="activation-row">';
+          res += '<div class="activation-code">' + pro3 + '</div>';
+          res += '<button class="copy-btn" onclick="copyCode(\'' + pro3 + '\')"><i class="fas fa-copy"></i> 复制</button>';
+          res += '</div></div>';
+          
+          res += '</div>';
+          res += '</div>';
+          break;
+          
+        case '4.6':
+          res = '<div class="version-grid">';
+          res += '<div class="version-card">';
+          res += '<div class="version-header"><i class="fas fa-tag"></i><span class="version-name">FinalShell 4.6</span></div>';
+          
+          const adv4 = keccak384(code + 'csSf5*xlkgYSX,y').slice(12, 28);
+          res += '<div class="activation-card">';
+          res += '<div class="activation-header"><span class="badge badge-adv">高级版</span></div>';
+          res += '<div class="activation-row">';
+          res += '<div class="activation-code">' + adv4 + '</div>';
+          res += '<button class="copy-btn" onclick="copyCode(\'' + adv4 + '\')"><i class="fas fa-copy"></i> 复制</button>';
+          res += '</div></div>';
+          
+          const pro4 = keccak384(code + 'Scfg*ZkvJZc,s,Y').slice(12, 28);
+          res += '<div class="activation-card">';
+          res += '<div class="activation-header"><span class="badge badge-pro">专业版</span></div>';
+          res += '<div class="activation-row">';
+          res += '<div class="activation-code">' + pro4 + '</div>';
+          res += '<button class="copy-btn" onclick="copyCode(\'' + pro4 + '\')"><i class="fas fa-copy"></i> 复制</button>';
+          res += '</div></div>';
+          
+          res += '</div>';
+          res += '</div>';
+          break;
+      }
+
+      out.innerHTML = res;
+    }
+    
+    function copyCode(code) {
+      navigator.clipboard.writeText(code).then(() => {
+        showCopiedMessage();
+      });
+    }
+    
+    function showCopiedMessage() {
+      const message = document.getElementById('copiedMessage');
+      message.classList.add('copied-show');
+      setTimeout(() => {
+        message.classList.remove('copied-show');
+      }, 2000);
+    }
+    
+    // 主题切换功能
+    const themeToggle = document.getElementById('themeToggle');
+    themeToggle.addEventListener('click', () => {
+      document.body.classList.toggle('light-theme');
+      const icon = themeToggle.querySelector('i');
+      if (document.body.classList.contains('light-theme')) {
+        icon.className = 'fas fa-moon';
+      } else {
+        icon.className = 'fas fa-sun';
+      }
+    });
+    
+    // 回车键触发生成
+    document.getElementById('machineCode').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        generate();
+      }
+    });
+    
+    // 初始加载时设置默认值
+    window.addEventListener('load', () => {
+      document.getElementById('machineCode').focus();
+    });
+  </script>
+</body>
 </html>
